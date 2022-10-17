@@ -17,7 +17,7 @@ describe('document', () => {
   test('Has title ', () => {
     render(<App />)
 
-    expect(screen.getByText('testing in vite')).toBeInTheDocument()
-    expect(screen.getByText('testing in vite')).toBeVisible()
+    expect(screen.getByText('generic currency converter')).toBeInTheDocument()
+    expect(screen.getByText('generic currency converter')).toBeVisible()
   })
 })
