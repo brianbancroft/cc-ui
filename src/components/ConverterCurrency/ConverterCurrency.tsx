@@ -1,16 +1,12 @@
 import { useEffect, useState } from 'react'
 
-import { api } from '../../util/api'
+import { retrieveCurrencies } from '../../api/retrieveCurrencies'
+import { retrieveRate } from '../../api/retrieveRate'
+import CurrencySelector from '../CurrencySelector/CurrencySelector'
 
 type CurrencyOption = {
   label: string
   code: string
-}
-
-type CurrencySelectorProps = {
-  currencyList: CurrencyOption[]
-  name: string
-  handleSelect: () => void
 }
 
 type NewAmount = {
@@ -20,28 +16,10 @@ type NewAmount = {
   rate: number
 }
 
-const CurrencySelector = ({
-  currencyList,
-  name,
-  handleSelect,
-}: CurrencySelectorProps) => {
-  return (
-    <select
-      className="border-l p-2 pr-8 bg-white"
-      name={name}
-      onChange={handleSelect}
-    >
-      {currencyList.map((currency: CurrencyOption) => (
-        <option key={currency.code} value={currency.code}>
-          {currency.label}
-        </option>
-      ))}
-    </select>
-  )
-}
+function ConverterCurrency(props: any) {
+  const { setLoading } = props
 
-function ConverterCurrency() {
-  const [currencyList, setCurrencyList] = useState([])
+  const [currencyList, setCurrencyList] = useState<CurrencyOption[]>([])
 
   const [newAmount, setNewAmount] = useState<NewAmount>({
     from: '',
@@ -56,9 +34,11 @@ function ConverterCurrency() {
 
   useEffect(() => {
     const retrieveCountries = async () => {
-      const { data } = await api.get('/currencies')
+      setLoading(true)
+      const { currencies } = await retrieveCurrencies()
 
-      setCurrencyList(data.currencies)
+      setCurrencyList(currencies)
+      setLoading(false)
     }
     retrieveCountries()
   }, [])
@@ -78,18 +58,16 @@ function ConverterCurrency() {
       return
     }
 
-    const params = new URLSearchParams({ from, to })
+    setLoading(true)
 
-    const {
-      data: { rate },
-    } = await api.get(`/currencies/rate?${params.toString()}`)
-
+    const { rate } = await retrieveRate({ from, to })
     setNewAmount({ rate, from, to, amount: amount * rate })
+    setLoading(false)
   }
 
   return (
     <section className="w-full h-full flex justify-center p-8">
-      <form className="flex flex-col" onSubmit={handleSubmit}>
+      <form className="flex flex-col w-4/5" onSubmit={handleSubmit}>
         <div className="border rounded grid grid-cols-[100px_1fr] items-center my-1">
           <label
             htmlFor="currencyFrom"
