@@ -1,9 +1,8 @@
-import React from 'react'
-
 type CurrencySelectorProps = {
   currencyList: CurrencyOption[]
   name: string
-  handleSelect: () => void
+  handleSelect: any
+  selectedOption: string
 }
 
 type CurrencyOption = {
@@ -15,6 +14,7 @@ const CurrencySelector = ({
   currencyList,
   name,
   handleSelect,
+  selectedOption,
 }: CurrencySelectorProps) => {
   return (
     <select
@@ -22,6 +22,7 @@ const CurrencySelector = ({
       name={name}
       onChange={handleSelect}
       disabled={currencyList.length === 0}
+      value={selectedOption}
     >
       {currencyList.map((currency: CurrencyOption) => (
         <option key={currency.code} value={currency.code}>

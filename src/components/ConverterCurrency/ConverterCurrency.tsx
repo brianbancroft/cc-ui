@@ -9,10 +9,14 @@ type CurrencyOption = {
   code: string
 }
 
-type NewAmount = {
+type SelectedCurrencyOptions = {
   from: string
   to: string
-  amount: number
+}
+
+type RateRecord = {
+  from: string
+  to: string
   rate: number
 }
 
@@ -20,54 +24,80 @@ function ConverterCurrency(props: any) {
   const { setLoading } = props
 
   const [currencyList, setCurrencyList] = useState<CurrencyOption[]>([])
+  const [selectedCurrencyOptions, setSelectedCurrencyOptions] =
+    useState<SelectedCurrencyOptions>({ from: '', to: '' })
 
-  const [newAmount, setNewAmount] = useState<NewAmount>({
+  const [retrievedRate, setRetrievedRate] = useState<RateRecord>({
     from: '',
     to: '',
-    amount: -1,
-    rate: -1,
+    rate: 1,
   })
 
-  function clearResults() {
-    setNewAmount({ ...newAmount, amount: -1 })
+  const [currencyAmount, setCurrencyAmount] = useState<number>(0)
+
+  const updateSelectedOptions = (selector: string) => (event: any) => {
+    setSelectedCurrencyOptions({
+      ...selectedCurrencyOptions,
+      [selector]: event.target.value,
+    })
   }
 
+  function swapSelectedCurrencies() {
+    console.log('Swap currenci  ')
+
+    const { from, to } = selectedCurrencyOptions
+
+    setSelectedCurrencyOptions({
+      from: to,
+      to: from,
+    })
+  }
+
+  // Handles initial load
   useEffect(() => {
     const retrieveCountries = async () => {
       setLoading(true)
       const { currencies } = await retrieveCurrencies()
 
       setCurrencyList(currencies)
+      setSelectedCurrencyOptions({
+        from: currencies[0].code,
+        to: currencies[0].code,
+      })
       setLoading(false)
     }
     retrieveCountries()
   }, [])
 
-  async function handleSubmit(e: any) {
-    e.preventDefault()
+  // Handles effects from selected currency changes
+  useEffect(() => {
+    const { from, to } = selectedCurrencyOptions
+    async function updateRate() {
+      setLoading(true)
+      const { rate } = await retrieveRate({ from, to })
+      setRetrievedRate({ from, to, rate })
 
-    const { target } = e
-    const from: string = target[0].value
-    const to: string = target[1].value
-    const amount: number = target[2].value
-
-    if (from === to) return
-
-    if (from === newAmount?.from && to === newAmount?.to) {
-      setNewAmount({ ...newAmount, amount: amount * newAmount.rate })
-      return
+      setLoading(false)
     }
 
-    setLoading(true)
+    if (
+      from &&
+      to &&
+      from !== to &&
+      retrievedRate.from !== from &&
+      retrievedRate.to !== to
+    ) {
+      updateRate()
+    }
+  }, [selectedCurrencyOptions])
 
-    const { rate } = await retrieveRate({ from, to })
-    setNewAmount({ rate, from, to, amount: amount * rate })
-    setLoading(false)
+  function handleAmountChange(e: any) {
+    setCurrencyAmount(e.target.value)
   }
 
   return (
     <section className="w-full h-full flex justify-center p-8">
-      <form className="flex flex-col w-4/5" onSubmit={handleSubmit}>
+      <div className="flex flex-col w-4/5 max-w-prose">
         <div className="border rounded grid grid-cols-[100px_1fr] items-center my-1">
           <label
             htmlFor="currencyFrom"
@@ -78,7 +108,8 @@ function ConverterCurrency(props: any) {
           <CurrencySelector
             currencyList={currencyList}
             name="currencyFrom"
-            handleSelect={clearResults}
+            handleSelect={updateSelectedOptions('from')}
+            selectedOption={selectedCurrencyOptions.from}
           />
         </div>
         <div className="border rounded grid grid-cols-[100px_1fr] items-center my-1">
@@ -88,32 +119,38 @@ function ConverterCurrency(props: any) {
           <CurrencySelector
             currencyList={currencyList}
             name="currencyTo"
-            handleSelect={clearResults}
+            handleSelect={updateSelectedOptions('to')}
+            selectedOption={selectedCurrencyOptions.to}
           />
         </div>
         <div className="border rounded grid grid-cols-[100px_1fr] items-center my-1">
           <label htmlFor="amount" className="px-2 capitalize font-semibold">
             amount
           </label>
-          <input type="number" name="amount" className="p-2 border-l" />
+          <input
+            type="number"
+            name="amount"
+            className="p-2 border-l"
+            value={currencyAmount}
+            onChange={handleAmountChange}
+          />
         </div>
-        <input
-          type="submit"
+        <button
+          type="button"
           name="submit"
           className="p-2 bg-blue-500 rounded text-white"
-        />
-      </form>
+          onClick={swapSelectedCurrencies}
+        >
+          swap currencies
+        </button>
+      </div>
       <div className="border rounded grid grid-cols-[200px_1fr] items-center my-1 ml-2">
         <label htmlFor="amount" className="px-2 capitalize font-semibold">
           converted amount
         </label>
         <input
           readOnly
-          value={
-            newAmount.amount === -1
-              ? 0
-              : Math.round(newAmount.amount * 100) / 100
-          }
+          value={Math.round(currencyAmount * retrievedRate.rate * 100) / 100}
           name="amount"
           className="p-2 border-l focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none"
         />
